@@ -1,10 +1,8 @@
 package jef;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
@@ -14,17 +12,27 @@ import org.apache.commons.math3.linear.RealVector;
 import util.JEUtils;
 
 public class EigenfaceMatrix {
-	private int[][] eigenMatrix = null;
+	
+	private double[][] eigenMatrix = null;
 
-	private EigenfaceMatrix(int[][] data) {
-		eigenMatrix = data;
+	private EigenfaceMatrix(double[][] eigenMatrix2) {
+		eigenMatrix = eigenMatrix2;
+	}
+	
+	/**
+	 * Fetches the array of eigenfaces obtained from 
+	 * computation on the List<GrayImage> 
+	 * @return
+	 */
+	public double[][] getEigenMatrix() {
+		return eigenMatrix;
 	}
 
 	public static EigenfaceMatrix importData(List<GrayImage> images) {
 		if (images == null) {
 			return new EigenfaceMatrix(null);
 		} else if (images.isEmpty()) {
-			return new EigenfaceMatrix(new int[0][0]);
+			return new EigenfaceMatrix(new double[0][0]);
 		}
 		
 		int m = images.size();
@@ -59,12 +67,9 @@ public class EigenfaceMatrix {
 			phis[i] = phi;
 		}
 
-		// covariance = m by m matrix whose value is transpose(matrix) *
-		// (matrix)
 		double[][] covariance = covariance(phis);
-		Array2DRowRealMatrix eigenMatrix = new Array2DRowRealMatrix(covariance);
-		EigenDecomposition eigenDecomposition = new EigenDecomposition(eigenMatrix);
-
+		EigenDecomposition eigenDecomposition = new EigenDecomposition(new Array2DRowRealMatrix(covariance));
+		
 		TreeMap<Double, List<RealVector>> eigenMap = new TreeMap<>(Collections.reverseOrder());
 
 		for (int i = 0; i < m; ++i) {
@@ -79,20 +84,27 @@ public class EigenfaceMatrix {
 			eigenMap.get(eigenValue).add(eigenDecomposition.getEigenvector(i));
 		}
 		
-		List<RealVector> selected = new ArrayList<>();
-		search: for (Entry<Double, List<RealVector>> eigen : eigenMap.entrySet()) {
-			for (RealVector eigenVector : eigen.getValue()) {
-				selected.add(eigenVector);
-				if (--k < 0) {
-					break search;
+		double[][] eigenMatrix = new double[k][nSq];
+		int counter = 0;
+		eigenface_search: for (List<RealVector> vectorList : eigenMap.values()) {
+			for (RealVector eigenVector : vectorList) {
+				double[] vectorData = eigenVector.toArray();
+				double[] eigenFace = new double[nSq];
+				for (int i = 0; i < nSq; ++i) {
+					double dot = 0;
+					for (int j = 0; j < m; ++j) {
+						dot += vectorData[j] * phis[j][i];
+					}
+					eigenFace[i] = dot;
+				}
+				eigenMatrix[counter++] = eigenFace;
+				if (counter >= k) {
+					break eigenface_search;
 				}
 			}
-			
 		}
-		for (RealVector rv : selected) {
-			System.out.println(rv.getDimension() + " " + Arrays.toString(rv.toArray()));
-		}
-		return null;
+		
+		return new EigenfaceMatrix(eigenMatrix);
 	}
 
 	private static double[][] covariance(double[][] matrix) {
