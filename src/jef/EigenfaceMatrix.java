@@ -12,52 +12,97 @@ import org.apache.commons.math3.linear.RealVector;
 import util.JEUtils;
 
 public class EigenfaceMatrix {
-	
-	private double[][] eigenMatrix = null;
 
-	private EigenfaceMatrix(double[][] eigenMatrix2) {
-		eigenMatrix = eigenMatrix2;
+	private double[][] eigenMatrix = null;
+	private double[] averageFace = null;
+
+	private EigenfaceMatrix(double[][] eigenMatrix, double[] averageFace, int imageWidth, int imageHeight) {
+		this.eigenMatrix = eigenMatrix;
+		this.averageFace = averageFace;
 	}
-	
+
 	/**
-	 * Fetches the array of eigenfaces obtained from 
-	 * computation on the List<GrayImage> 
+	 * Fetches the array of eigenfaces obtained from computation on the List
+	 * <GrayImage>
+	 * 
 	 * @return
 	 */
 	public double[][] getEigenMatrix() {
 		return eigenMatrix;
 	}
 
-	public static EigenfaceMatrix importData(List<GrayImage> images) {
-		if (images == null) {
-			return new EigenfaceMatrix(null);
-		} else if (images.isEmpty()) {
-			return new EigenfaceMatrix(new double[0][0]);
+	public double[] getFace(int faceID) {
+		if (faceID >= eigenMatrix.length || faceID < 0) {
+			throw new IllegalArgumentException("getFace(): Face ID invalid: " + faceID);
 		}
-		
+		return eigenMatrix[faceID];
+	}
+
+	/**
+	 * Probes the trained face recognition data to see if it is a good match to
+	 * any known face
+	 * 
+	 * @param image
+	 */
+	public void probe(GrayImage image) {
+		int[] imageData = image.getImage();
+		double[] normalized = normalize(imageData);
+		double[] omega = new double[eigenMatrix.length];
+		for (int i = 0; i < omega.length; ++i) {
+			double dot = 0;
+			for (int j = 0; j < eigenMatrix[i].length; ++j) {
+				dot += eigenMatrix[i][j] * normalized[j];
+			}
+			omega[i] = dot;
+		}
+	}
+
+	/**
+	 * normalizes the probe image with the average face
+	 * @param image
+	 * @return
+	 */
+	private double[] normalize(int[] image) {
+		if (image.length != averageFace.length) {
+			throw new IllegalArgumentException(
+					"normalize(): Illegal image length, expected" + averageFace.length + " but was " + image.length);
+		}
+		double[] normalized = new double[image.length];
+		for (int i = 0; i < image.length; ++i) {
+			normalized[i] = ((double) image[i]) - averageFace[i];
+		}
+		return normalized;
+	}
+
+	public static EigenfaceMatrix importData(List<GrayImage> images, int imageWidth, int imageHeight) {
+		if (images == null) {
+			throw new IllegalArgumentException("EigenfaceMatrix: null input");
+		} else if (images.isEmpty()) {
+			return new EigenfaceMatrix(new double[0][0], new double[0], 0, 0);
+		}
+
 		int m = images.size();
 		int nSq = images.get(0).getImage().length;
-		int k = m / 2; 
-		
+		int k = m / 2;
+
 		double[][] phis = new double[m][nSq];
 		double[] averageMatrix = new double[nSq];
-		
-		
+
 		for (int i = 0; i < m; ++i) {
 			int[] image = images.get(i).getImage();
 			if (i >= 1 && image.length != nSq) {
 				throw new IllegalArgumentException("EigenfaceMatrix: image matrix must not be jagged");
 			}
-			
+
 			for (int j = 0; j < nSq; ++j) {
 				averageMatrix[j] += image[j];
 			}
 		}
-		
+
 		for (int i = 0; i < nSq; ++i) {
 			averageMatrix[i] /= m;
 		}
-		
+
 		for (int i = 0; i < m; ++i) {
 			double[] phi = new double[nSq];
 			int[] image = images.get(i).getImage();
@@ -69,7 +114,7 @@ public class EigenfaceMatrix {
 
 		double[][] covariance = covariance(phis);
 		EigenDecomposition eigenDecomposition = new EigenDecomposition(new Array2DRowRealMatrix(covariance));
-		
+
 		TreeMap<Double, List<RealVector>> eigenMap = new TreeMap<>(Collections.reverseOrder());
 
 		for (int i = 0; i < m; ++i) {
@@ -83,7 +128,7 @@ public class EigenfaceMatrix {
 			}
 			eigenMap.get(eigenValue).add(eigenDecomposition.getEigenvector(i));
 		}
-		
+
 		double[][] eigenMatrix = new double[k][nSq];
 		int counter = 0;
 		eigenface_search: for (List<RealVector> vectorList : eigenMap.values()) {
@@ -103,8 +148,8 @@ public class EigenfaceMatrix {
 				}
 			}
 		}
-		
-		return new EigenfaceMatrix(eigenMatrix);
+
+		return new EigenfaceMatrix(eigenMatrix, averageMatrix, imageWidth, imageHeight);
 	}
 
 	private static double[][] covariance(double[][] matrix) {

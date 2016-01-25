@@ -8,9 +8,11 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import javax.imageio.ImageIO;
 
+import graphics.PixelDisplay;
 import jef.EigenfaceMatrix;
 import jef.GrayImage;
 
@@ -28,7 +30,7 @@ public class JEUtils {
 				WritableRaster raster = img.getRaster();
 				byte rawPixels[] = ((DataBufferByte) raster.getDataBuffer()).getData();
 				int pixLength = 3;
-				int pixOffset = 0; 
+				int pixOffset = 0;
 				if (img.getAlphaRaster() != null) {
 					pixLength = 4;
 					pixOffset = 1;
@@ -47,15 +49,15 @@ public class JEUtils {
 		}
 		return gImage;
 	}
-	
+
 	public static int luminosityGrayscale(int r, int g, int b) {
 		return (int) ((LUMINOSITY_WEIGHTS[0] * r) + (LUMINOSITY_WEIGHTS[1] * g) + (LUMINOSITY_WEIGHTS[2] * b));
 	}
-	
+
 	public static int averagedGrayscale(int r, int g, int b) {
 		return (r + g + b) / 3;
 	}
-	
+
 	/**
 	 * Rounds the given 'number' to decimalPlaces number of decimal places
 	 * 
@@ -71,22 +73,29 @@ public class JEUtils {
 		}
 		return new BigDecimal(number).setScale(decimalPlaces, RoundingMode.HALF_UP).doubleValue();
 	}
-	
+
 	public static void main(String[] args) {
-		//GrayImage img = loadTrainingImage("test/004.png");
+		// GrayImage img = loadTrainingImage("test/004.png");
 		ArrayList<GrayImage> trainingSet = new ArrayList<>();
-		for (int i = 1; i < 6; ++i) {
-			trainingSet.add(loadTrainingImage("test/00" + i + ".png"));
+		for (int i = 0; i <= 4; ++i) {
+			trainingSet.add(loadTrainingImage("test/jason" + i + ".jpg"));
 		}
-		EigenfaceMatrix.importData(trainingSet);
+		EigenfaceMatrix mat = EigenfaceMatrix.importData(trainingSet, GrayImage.IMAGE_WIDTH, GrayImage.IMAGE_HEIGHT);
 		
-		/*StringBuilder sb = new StringBuilder();
-		for (int i : img.getImage()) {
-			sb.append(Integer.toHexString(i));
-			sb.append(System.lineSeparator());
+		double[] face0 = mat.getFace(0);
+		int[] image = new int[face0.length];
+
+		
+		for (int i = 0; i < image.length; i++) {
+			image[i] = ((int) face0[i]) & 0xff;
 		}
-		System.out.println(sb);*/
+		PixelDisplay.displayImage(image, 220, 220);
+
+		/*
+		 * StringBuilder sb = new StringBuilder(); for (int i : img.getImage())
+		 * { sb.append(Integer.toHexString(i));
+		 * sb.append(System.lineSeparator()); } System.out.println(sb);
+		 */
 	}
-	
-	
+
 }

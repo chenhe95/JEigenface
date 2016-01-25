@@ -2,8 +2,8 @@ package jef;
 
 public class GrayImage {
 	
-	private static final int IMAGE_WIDTH = 320;
-	private static final int IMAGE_HEIGHT = 320;
+	public static final int IMAGE_WIDTH = 220;
+	public static final int IMAGE_HEIGHT = 220;
 	
 	private int[] gImage = null;
 	private int width = 0;
