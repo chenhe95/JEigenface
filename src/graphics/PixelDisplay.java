@@ -24,6 +24,14 @@ public class PixelDisplay extends JFrame implements Runnable {
 		SwingUtilities.invokeLater(new PixelDisplay(data, imageWidth, imageHeight));
 	}
 	
+	public static void displayImage(double[] data, int imageWidth, int imageHeight) {
+		int[] copy = new int[data.length];
+		for (int i = 0; i < copy.length; i++) {
+			copy[i] = (int) data[i];
+		}
+		displayImage(copy, imageWidth, imageHeight);
+	}
+	
 	@Override
 	public void run() {
 		setVisible(true);
@@ -47,9 +55,9 @@ public class PixelDisplay extends JFrame implements Runnable {
 		javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(pixelPanel);
 		pixelPanel.setLayout(jPanel1Layout);
 		jPanel1Layout.setHorizontalGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGap(0, 400, Short.MAX_VALUE));
+				.addGap(0, imageWidth + 20, Short.MAX_VALUE));
 		jPanel1Layout.setVerticalGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGap(0, 300, Short.MAX_VALUE));
+				.addGap(0, imageHeight + 20, Short.MAX_VALUE));
 
 		javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
 		getContentPane().setLayout(layout);
@@ -59,7 +67,7 @@ public class PixelDisplay extends JFrame implements Runnable {
 		layout.setVerticalGroup(
 				layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING).addComponent(pixelPanel,
 						javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE));
-
+		setTitle("PixelDisplay " + imageWidth + "x" + imageHeight);
 		pack();
 	}
 

@@ -9,16 +9,33 @@ import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.EigenDecomposition;
 import org.apache.commons.math3.linear.RealVector;
 
+import graphics.PixelDisplay;
 import util.JEUtils;
 
 public class EigenfaceMatrix {
 
 	private double[][] eigenMatrix = null;
 	private double[] averageFace = null;
+	private int imageCount = 0;
 
-	private EigenfaceMatrix(double[][] eigenMatrix, double[] averageFace, int imageWidth, int imageHeight) {
+	private EigenfaceMatrix(double[][] eigenMatrix, double[] averageFace, int imageWidth, int imageHeight, int imageCount) {
 		this.eigenMatrix = eigenMatrix;
 		this.averageFace = averageFace;
+		this.imageCount = imageCount;
+	}
+	
+	public static double probeDistance(double[] probe1, double[] probe2) {
+		
+		if (probe1 == null || probe2 == null || probe1.length != probe2.length) {
+			throw new IllegalArgumentException("probeDistance(): illegal inputs");
+		}
+		
+		double sum = 0;
+		for (int i = 0; i < probe1.length; ++i) {
+			double dif = probe1[i] - probe2[i];
+			sum += dif*dif;
+		}
+		return Math.sqrt(sum);
 	}
 
 	/**
@@ -43,10 +60,10 @@ public class EigenfaceMatrix {
 	 * any known face
 	 * 
 	 * @param image
+	 * @return the weights of the probe 
 	 */
-	public void probe(GrayImage image) {
-		int[] imageData = image.getImage();
-		double[] normalized = normalize(imageData);
+	public double[] probe(double[] imageData) {
+		double[] normalized = subtractAverage(imageData);
 		double[] omega = new double[eigenMatrix.length];
 		for (int i = 0; i < omega.length; ++i) {
 			double dot = 0;
@@ -55,6 +72,15 @@ public class EigenfaceMatrix {
 			}
 			omega[i] = dot;
 		}
+		return omega;
+	}
+	
+	public double[][] selfProbe() {
+		double[][] probe = new double[eigenMatrix.length][imageCount];
+		for (int i = 0; i < probe.length; ++i) {
+			probe[i] = probe(eigenMatrix[i]);
+		}
+		return probe;
 	}
 
 	/**
@@ -62,23 +88,37 @@ public class EigenfaceMatrix {
 	 * @param image
 	 * @return
 	 */
-	private double[] normalize(int[] image) {
+	private double[] subtractAverage(double[] image) {
 		if (image.length != averageFace.length) {
 			throw new IllegalArgumentException(
 					"normalize(): Illegal image length, expected" + averageFace.length + " but was " + image.length);
 		}
 		double[] normalized = new double[image.length];
 		for (int i = 0; i < image.length; ++i) {
-			normalized[i] = ((double) image[i]) - averageFace[i];
+			normalized[i] = (((double) image[i]) - averageFace[i]);
 		}
+		// PixelDisplay.displayImage(normalized, 220, 220);
 		return normalized;
+	}
+	
+	private double[] normalize(double[] face) {
+		double[] copy = new double[face.length];
+		double norm = 0;
+		for (double d : face) {
+			norm += d*d;
+		}
+		norm = Math.sqrt(norm);
+		for (int i = 0; i < face.length; ++i) {
+			copy[i] = face[i] / norm;
+		}
+		return copy;
 	}
 
 	public static EigenfaceMatrix importData(List<GrayImage> images, int imageWidth, int imageHeight) {
 		if (images == null) {
 			throw new IllegalArgumentException("EigenfaceMatrix: null input");
 		} else if (images.isEmpty()) {
-			return new EigenfaceMatrix(new double[0][0], new double[0], 0, 0);
+			return new EigenfaceMatrix(new double[0][0], new double[0], 0, 0, 0);
 		}
 
 		int m = images.size();
@@ -89,7 +129,7 @@ public class EigenfaceMatrix {
 		double[] averageMatrix = new double[nSq];
 
 		for (int i = 0; i < m; ++i) {
-			int[] image = images.get(i).getImage();
+			double[] image = images.get(i).getImage();
 			if (i >= 1 && image.length != nSq) {
 				throw new IllegalArgumentException("EigenfaceMatrix: image matrix must not be jagged");
 			}
@@ -98,16 +138,19 @@ public class EigenfaceMatrix {
 				averageMatrix[j] += image[j];
 			}
 		}
-
+		int[] avg2 = new int[nSq];
 		for (int i = 0; i < nSq; ++i) {
 			averageMatrix[i] /= m;
+			avg2[i] = (int) averageMatrix[i];
 		}
-
+		
+		
+		PixelDisplay.displayImage(avg2, imageWidth, imageHeight);
 		for (int i = 0; i < m; ++i) {
 			double[] phi = new double[nSq];
-			int[] image = images.get(i).getImage();
+			double[] image = images.get(i).getImage();
 			for (int j = 0; j < nSq; ++j) {
-				phi[j] = -averageMatrix[j] + image[j];
+				phi[j] = (-averageMatrix[j] + image[j]);
 			}
 			phis[i] = phi;
 		}
@@ -135,6 +178,7 @@ public class EigenfaceMatrix {
 			for (RealVector eigenVector : vectorList) {
 				double[] vectorData = eigenVector.toArray();
 				double[] eigenFace = new double[nSq];
+
 				for (int i = 0; i < nSq; ++i) {
 					double dot = 0;
 					for (int j = 0; j < m; ++j) {
@@ -142,6 +186,7 @@ public class EigenfaceMatrix {
 					}
 					eigenFace[i] = dot;
 				}
+
 				eigenMatrix[counter++] = eigenFace;
 				if (counter >= k) {
 					break eigenface_search;
@@ -149,7 +194,7 @@ public class EigenfaceMatrix {
 			}
 		}
 
-		return new EigenfaceMatrix(eigenMatrix, averageMatrix, imageWidth, imageHeight);
+		return new EigenfaceMatrix(eigenMatrix, averageMatrix, imageWidth, imageHeight, m);
 	}
 
 	private static double[][] covariance(double[][] matrix) {
