@@ -1,15 +1,17 @@
 package jef;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.TreeMap;
 
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.EigenDecomposition;
+import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
+import org.apache.commons.math3.linear.SingularValueDecomposition;
 
-import graphics.PixelDisplay;
 import util.JEUtils;
 
 public class EigenfaceMatrix {
@@ -101,7 +103,7 @@ public class EigenfaceMatrix {
 		return normalized;
 	}
 	
-	private double[] normalize(double[] face) {
+	public static double[] normalize(double[] face) {
 		double[] copy = new double[face.length];
 		double norm = 0;
 		for (double d : face) {
@@ -123,10 +125,18 @@ public class EigenfaceMatrix {
 
 		int m = images.size();
 		int nSq = images.get(0).getImage().length;
-		int k = m / 2;
+		int k = m ;
 
-		double[][] phis = new double[m][nSq];
-		double[] averageMatrix = new double[nSq];
+		
+		/*
+		 * in the format of 
+		 * 
+		 * 1 1 1 1 1 1 1 1 1 ...
+		 * 2 2 2 2 2 2 2 2 2 ...
+		 * 3 3 3 3 3 3 3 3 3 ...
+		 */
+		double[][] A = new double[m][nSq];
+		double[] avg = new double[nSq];
 
 		for (int i = 0; i < m; ++i) {
 			double[] image = images.get(i).getImage();
@@ -135,29 +145,26 @@ public class EigenfaceMatrix {
 			}
 
 			for (int j = 0; j < nSq; ++j) {
-				averageMatrix[j] += image[j];
+				avg[j] += image[j];
 			}
 		}
-		int[] avg2 = new int[nSq];
+		
 		for (int i = 0; i < nSq; ++i) {
-			averageMatrix[i] /= m;
-			avg2[i] = (int) averageMatrix[i];
+			avg[i] /= m;
 		}
 		
-		
-		PixelDisplay.displayImage(avg2, imageWidth, imageHeight);
+		//PixelDisplay.displayImage(avg, imageWidth, imageHeight);
 		for (int i = 0; i < m; ++i) {
 			double[] phi = new double[nSq];
 			double[] image = images.get(i).getImage();
 			for (int j = 0; j < nSq; ++j) {
-				phi[j] = (-averageMatrix[j] + image[j]);
+				phi[j] = (-avg[j] + image[j]);
 			}
-			phis[i] = phi;
+			A[i] = phi;
 		}
-
-		double[][] covariance = covariance(phis);
+		
+		double[][] covariance = covariance(A);
 		EigenDecomposition eigenDecomposition = new EigenDecomposition(new Array2DRowRealMatrix(covariance));
-
 		TreeMap<Double, List<RealVector>> eigenMap = new TreeMap<>(Collections.reverseOrder());
 
 		for (int i = 0; i < m; ++i) {
@@ -176,28 +183,29 @@ public class EigenfaceMatrix {
 		int counter = 0;
 		eigenface_search: for (List<RealVector> vectorList : eigenMap.values()) {
 			for (RealVector eigenVector : vectorList) {
-				double[] vectorData = eigenVector.toArray();
+				double[] vectorData = (eigenVector.toArray());
 				double[] eigenFace = new double[nSq];
 
 				for (int i = 0; i < nSq; ++i) {
 					double dot = 0;
 					for (int j = 0; j < m; ++j) {
-						dot += vectorData[j] * phis[j][i];
+						dot += vectorData[j] * A[j][i];
 					}
 					eigenFace[i] = dot;
 				}
-
-				eigenMatrix[counter++] = eigenFace;
+				
+				eigenMatrix[counter++] = (eigenFace);
 				if (counter >= k) {
 					break eigenface_search;
 				}
 			}
 		}
 
-		return new EigenfaceMatrix(eigenMatrix, averageMatrix, imageWidth, imageHeight, m);
+		return new EigenfaceMatrix(eigenMatrix, avg, imageWidth, imageHeight, m);
 	}
 
 	private static double[][] covariance(double[][] matrix) {
+		
 		double[][] covariance = new double[matrix.length][matrix.length];
 
 		for (int i = 0; i < matrix.length; ++i) {

@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import javax.imageio.ImageIO;
 
@@ -81,29 +80,21 @@ public class JEUtils {
 	public static void main(String[] args) {
 		// GrayImage img = loadTrainingImage("test/004.png");
 		ArrayList<GrayImage> trainingSet = new ArrayList<>();
-		for (int i = 0; i <= 4; ++i) {
-			trainingSet.add(loadTrainingImage("test/jason" + i + ".jpg"));
+		for (int i = 1; i <= 18; ++i) {
+			trainingSet.add(loadTrainingImage("test/Aberdeen/amellanby" + i + ".jpg"));
 		}
 		EigenfaceMatrix mat = EigenfaceMatrix.importData(trainingSet, GrayImage.IMAGE_WIDTH, GrayImage.IMAGE_HEIGHT);
 		
 		double[] face0 = mat.getFace(0);
-		int[] image = new int[face0.length];
 
-		
-		for (int i = 0; i < image.length; i++) {
-			image[i] = ((int) face0[i]) & 0xff;
-		}
-		PixelDisplay.displayImage(image, 220, 220);
-		System.out.println("me vs jason img comparison " + EigenfaceMatrix.probeDistance(mat.selfProbe()[0], mat.probe(loadTrainingImage("test/000.jpg").getImage())));
-		GrayImage jasonfull = loadTrainingImage("test/jason0.jpg");
+		PixelDisplay.displayImage(face0, 320, 480);
+		System.out.println("img comparison " + EigenfaceMatrix.probeDistance(mat.selfProbe()[1], mat.probe(loadTrainingImage("test/Aberdeen/alister3.jpg").getImage())));
 		double minres = Double.MAX_VALUE;
-		double[] imageData = jasonfull.getImage();
+		/*double[] imageData = jasonfull.getImage();
+		double[] imageprobe = new double[320*480];
 		int mini = 0, minj = 0;
 		for (int i = 0; i + 219 < jasonfull.getHeight(); i++) {
 			for (int j = 0; j + 219 < jasonfull.getWidth(); j++) {
-				
-				double[] imageprobe = new double[220*220];
-				
 				// PixelDisplay.displayImage(imageData, jasonfull.getWidth(), jasonfull.getHeight());
 				
 				for (int m = i; m < i + 220; m++) {
@@ -115,20 +106,20 @@ public class JEUtils {
 				for (int h = 0; h < 220*220; h++) {
 					dat[h] = (int) imageprobe[h];
 				}
-				PixelDisplay.displayImage(dat, 220, 220);
-				double res = EigenfaceMatrix.probeDistance(mat.selfProbe()[0], mat.probe(imageprobe));
-				System.out.println(res);
-				//System.out.println(EigenfaceMatrix.probeDistance(mat.probe(imageData), probe2))
-				if (res < minres) {
-					minres = res;
-					mini = i;
-					minj = j;
-				} else {
-					j += 100;
+				for (int u = 0;u < 4; ++u) {
+					double res = EigenfaceMatrix.probeDistance(mat.selfProbe()[u], mat.probe(imageprobe));
+					//System.out.println(EigenfaceMatrix.probeDistance(mat.probe(imageData), probe2))
+					if (res < minres) {
+						minres = res;
+						mini = i;
+						minj = j;
+					} 
 				}
+				j += 100;
+				
 			}
 		}
-		System.out.println("imageprobe " + minres + " " + mini + " " + minj);
+		System.out.println("imageprobe " + minres + " " + mini + " " + minj);*/
 		/*
 		 * StringBuilder sb = new StringBuilder(); for (int i : img.getImage())
 		 * { sb.append(Integer.toHexString(i));

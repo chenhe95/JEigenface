@@ -27,7 +27,7 @@ public class PixelDisplay extends JFrame implements Runnable {
 	public static void displayImage(double[] data, int imageWidth, int imageHeight) {
 		int[] copy = new int[data.length];
 		for (int i = 0; i < copy.length; i++) {
-			copy[i] = (int) data[i];
+			copy[i] = (int) (data[i]);
 		}
 		displayImage(copy, imageWidth, imageHeight);
 	}
@@ -80,7 +80,9 @@ public class PixelDisplay extends JFrame implements Runnable {
 		private BufferedImage generatedImage = null;
 
 		private PixelPanel(int[] data, int width, int height) {
-
+			if (data.length < width * height - 1) {
+				throw new IllegalArgumentException("invalid data length " + data.length + ", expected at least " + (width*height-1));
+			}
 			generatedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 			for (int y = 0; y < height; y++) {
 				for (int x = 0; x < width; x++) {
